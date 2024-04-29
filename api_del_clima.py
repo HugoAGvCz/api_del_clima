@@ -112,7 +112,7 @@ def consulta_api():
 
 def comprobar_dia():
     # Día 9 de cada mes
-    if datetime.now().day == 29:
+    if datetime.now().day == 9:
         if not consulta_api():
             print("Error al obtener los datos.")
     # Estas lineas solamente son para probar el programa 
@@ -121,7 +121,7 @@ def comprobar_dia():
     #     print("Hoy no es el día 9 del mes, la consulta a la API no se realizará.")
 
 # Modifica la hora para hacer pruebas. En caso de que no, dejar la hora como 00.00
-schedule.every().day.at("15:31").do(comprobar_dia)
+schedule.every().day.at("00:00").do(comprobar_dia)
 
 while True:
     # Run pending tasks
