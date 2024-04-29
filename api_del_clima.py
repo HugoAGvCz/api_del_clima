@@ -9,9 +9,9 @@ from retry_requests import retry
 from datetime import datetime
 
 def consulta_api():
+    current_date = datetime.now().strftime('%Y-%m-%d')
     dir_codigo = os.path.dirname(os.path.realpath(__file__)) 
     carpeta = 'datos_clima'
-    current_date = datetime.now().strftime('%Y-%m-%d')
     folder = os.path.join(dir_codigo, carpeta, current_date)
     os.makedirs(folder, exist_ok=True)
     
@@ -27,7 +27,7 @@ def consulta_api():
         "latitude": 20.659698,
         "longitude": -103.349609,
         "hourly": ["temperature_2m", "precipitation_probability", "wind_speed_10m", "uv_index", "uv_index_clear_sky", "is_day", "sunshine_duration", "direct_radiation"],
-        "daily": ["weather_code", "temperature_2m_max", "temperature_2m_min", "sunrise", "sunset", "daylight_duration", "sunshine_duration", "uv_index_max", "uv_index_clear_sky_max", "precipitation_probability_max"],
+        "daily": ["temperature_2m_max", "temperature_2m_min", "sunrise", "sunset", "daylight_duration", "sunshine_duration", "uv_index_max", "uv_index_clear_sky_max", "precipitation_probability_max"],
         "timezone": "auto",
         "past_days": 31,
         "forecast_days": 1
@@ -68,20 +68,19 @@ def consulta_api():
     hourly_data["direct_radiation"] = hourly_direct_radiation
 
     hourly_dataframe = pd.DataFrame(data = hourly_data)
-    print(hourly_dataframe)
+    #print(hourly_dataframe)
 
     # Process daily data. The order of variables needs to be the same as requested.
     daily = response.Daily()
-    daily_weather_code = daily.Variables(0).ValuesAsNumpy()
-    daily_temperature_2m_max = daily.Variables(1).ValuesAsNumpy()
-    daily_temperature_2m_min = daily.Variables(2).ValuesAsNumpy()
-    daily_sunrise = daily.Variables(3).ValuesAsNumpy()
-    daily_sunset = daily.Variables(4).ValuesAsNumpy()
-    daily_daylight_duration = daily.Variables(5).ValuesAsNumpy()
-    daily_sunshine_duration = daily.Variables(6).ValuesAsNumpy()
-    daily_uv_index_max = daily.Variables(7).ValuesAsNumpy()
-    daily_uv_index_clear_sky_max = daily.Variables(8).ValuesAsNumpy()
-    daily_precipitation_probability_max = daily.Variables(9).ValuesAsNumpy()
+    daily_temperature_2m_max = daily.Variables(0).ValuesAsNumpy()
+    daily_temperature_2m_min = daily.Variables(1).ValuesAsNumpy()
+    daily_sunrise = daily.Variables(2).ValuesAsNumpy()
+    daily_sunset = daily.Variables(3).ValuesAsNumpy()
+    daily_daylight_duration = daily.Variables(4).ValuesAsNumpy()
+    daily_sunshine_duration = daily.Variables(5).ValuesAsNumpy()
+    daily_uv_index_max = daily.Variables(6).ValuesAsNumpy()
+    daily_uv_index_clear_sky_max = daily.Variables(7).ValuesAsNumpy()
+    daily_precipitation_probability_max = daily.Variables(8).ValuesAsNumpy()
 
     daily_data = {"date": pd.date_range(
         start = pd.to_datetime(daily.Time(), unit = "s", utc = True),
@@ -89,7 +88,6 @@ def consulta_api():
         freq = pd.Timedelta(seconds = daily.Interval()),
         inclusive = "left"
     )}
-    daily_data["weather_code"] = daily_weather_code
     daily_data["temperature_2m_max"] = daily_temperature_2m_max
     daily_data["temperature_2m_min"] = daily_temperature_2m_min
     daily_data["sunrise"] = daily_sunrise
@@ -101,22 +99,29 @@ def consulta_api():
     daily_data["precipitation_probability_max"] = daily_precipitation_probability_max
 
     daily_dataframe = pd.DataFrame(data = daily_data)
-    print(daily_dataframe)
+    #print(daily_dataframe)
  
-    hourly_dataframe.to_csv(os.path.join(folder, f'hourly_data_{current_date}.csv'), index=False)
-    daily_dataframe.to_csv(os.path.join(folder, f'daily_data_{current_date}.csv'), index=False)
+    if hourly_dataframe.empty and daily_dataframe.empty:
+        print("No se obtuvieron datos de la API.")
+        return False
+    else:
+        print("Datos obtenidos correctamente.")
+        hourly_dataframe.to_csv(os.path.join(folder, f'hourly_data_{current_date}.csv'), index=False)
+        daily_dataframe.to_csv(os.path.join(folder, f'daily_data_{current_date}.csv'), index=False)
+        return True
 
 def comprobar_dia():
     # Día 9 de cada mes
-    if datetime.now().day == 9:
-        consulta_api()
+    if datetime.now().day == 29:
+        if not consulta_api():
+            print("Error al obtener los datos.")
     # Estas lineas solamente son para probar el programa 
     # else:
     #     print(datetime.now().day)
-    #     print("Hoy no es el día 9, la consulta a la API no se realizará.")
+    #     print("Hoy no es el día 9 del mes, la consulta a la API no se realizará.")
 
 # Modifica la hora para hacer pruebas. En caso de que no, dejar la hora como 00.00
-schedule.every().day.at("00:00").do(comprobar_dia)
+schedule.every().day.at("15:31").do(comprobar_dia)
 
 while True:
     # Run pending tasks
