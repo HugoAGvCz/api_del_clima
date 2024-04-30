@@ -1,0 +1,5 @@
+# pip install -r requirements.txt
+openmeteo_requests
+requests_cache
+pandas
+retry_requests

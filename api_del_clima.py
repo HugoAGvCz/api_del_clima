@@ -2,16 +2,19 @@ import openmeteo_requests
 
 import os
 import requests_cache
-import pandas as pd
-import schedule
-import time
+import pandas as pd 
 from retry_requests import retry
 from datetime import datetime
 
-def consulta_api():
+ciudades = {
+    "Guadalajara": (20.659698, -103.349609),  # Coordenadas de Guadalajara
+    "Zapopan": (20.671955, -103.416504)  # Coordenadas de Zapopan
+}
+
+def consulta_api(latitude, longitude, ciudad):
     current_date = datetime.now().strftime('%Y-%m-%d')
     dir_codigo = os.path.dirname(os.path.realpath(__file__)) 
-    carpeta = 'datos_clima'
+    carpeta = f'datos_clima_{ciudad}'  # Agrega el nombre de la ciudad a la carpeta
     folder = os.path.join(dir_codigo, carpeta, current_date)
     os.makedirs(folder, exist_ok=True)
     
@@ -24,8 +27,8 @@ def consulta_api():
     # The order of variables in hourly or daily is important to assign them correctly below
     url = "https://api.open-meteo.com/v1/forecast"	
     params = {
-        "latitude": 20.659698,
-        "longitude": -103.349609,
+        "latitude": latitude,
+        "longitude": longitude,
         "hourly": ["temperature_2m", "precipitation_probability", "wind_speed_10m", "uv_index", "uv_index_clear_sky", "is_day", "sunshine_duration", "direct_radiation"],
         "daily": ["temperature_2m_max", "temperature_2m_min", "sunrise", "sunset", "daylight_duration", "sunshine_duration", "uv_index_max", "uv_index_clear_sky_max", "precipitation_probability_max"],
         "timezone": "auto",
@@ -105,25 +108,12 @@ def consulta_api():
         print("No se obtuvieron datos de la API.")
         return False
     else:
-        print("Datos obtenidos correctamente.")
+        print(f"Datos de {ciudad} obtenidos correctamente.\n")
         hourly_dataframe.to_csv(os.path.join(folder, f'hourly_data_{current_date}.csv'), index=False)
         daily_dataframe.to_csv(os.path.join(folder, f'daily_data_{current_date}.csv'), index=False)
         return True
 
-def comprobar_dia():
-    # Día 9 de cada mes
-    if datetime.now().day == 29:
-        if not consulta_api():
-            print("Error al obtener los datos.")
-    # Estas lineas solamente son para probar el programa 
-    # else:
-    #     print(datetime.now().day)
-    #     print("Hoy no es el día 9 del mes, la consulta a la API no se realizará.")
-
-# Modifica la hora para hacer pruebas. En caso de que no, dejar la hora como 00.00
-schedule.every().day.at("18:43").do(comprobar_dia)
-
-while True:
-    # Run pending tasks
-    schedule.run_pending()
-    time.sleep(1)
+if __name__ == "__main__":
+    for ciudad, coordenadas in ciudades.items(): 
+        if not consulta_api(coordenadas[0], coordenadas[1], ciudad): 
+            print(f"Error al obtener los datos para {ciudad}.")
