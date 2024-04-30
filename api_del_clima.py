@@ -7,8 +7,9 @@ from retry_requests import retry
 from datetime import datetime
 
 ciudades = {
-    "Guadalajara": (20.659698, -103.349609),  # Coordenadas de Guadalajara
-    "Zapopan": (20.671955, -103.416504)  # Coordenadas de Zapopan
+    "Guadalajara": (20.659698, -103.349609), 
+    "Zapopan": (20.671955, -103.416504) ,
+    "Tlaquepaque": (20.64091, -103.29327)
 }
 
 def consulta_api(latitude, longitude, ciudad):
