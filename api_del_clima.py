@@ -14,8 +14,9 @@ ciudades = {
 def consulta_api(latitude, longitude, ciudad):
     current_date = datetime.now().strftime('%Y-%m-%d')
     dir_codigo = os.path.dirname(os.path.realpath(__file__)) 
-    carpeta = f'datos_clima_{ciudad}'  # Agrega el nombre de la ciudad a la carpeta
-    folder = os.path.join(dir_codigo, carpeta, current_date)
+    carpeta_raiz = 'datos_clima'
+    carpeta_ciudad = ciudad
+    folder = os.path.join(dir_codigo, carpeta_raiz, carpeta_ciudad, current_date)
     os.makedirs(folder, exist_ok=True)
     
     # Setup the Open-Meteo API client with cache and retry on error
