@@ -12,19 +12,25 @@ ciudades = {
     "Tlaquepaque": (20.64091, -103.29327)
 }
 
+mes = { "1": "Enero", "2": "Febrero", "3": "Marzo", "4": "Abril", "5": "Mayo", "6": "Junio", "7": "Julio", "8": "Agosto", "9": "Septiembre", "10": "Octubre", "11": "Noviembre", "12": "Diciembre" }
+
 def consulta_api(latitude, longitude, ciudad):
-    current_date = datetime.now().strftime('%Y-%m-%d')
+    current_date = datetime.now().strftime('%Y')
     dir_codigo = os.path.dirname(os.path.realpath(__file__)) 
     carpeta_raiz = 'datos_clima'
     carpeta_ciudad = ciudad
     folder = os.path.join(dir_codigo, carpeta_raiz, carpeta_ciudad, current_date)
     os.makedirs(folder, exist_ok=True)
     
-    # Setup the Open-Meteo API client with cache and retry on error
+        # Setup the Open-Meteo API client with cache and retry on error
     cache_session = requests_cache.CachedSession('.cache', expire_after = 3600)
     retry_session = retry(cache_session, retries = 5, backoff_factor = 0.2)
     openmeteo = openmeteo_requests.Client(session = retry_session)
 
+    start_date = datetime(datetime.today().year, 1, 1).date()
+    print(start_date)
+    end_date = datetime.today().date()
+    print(end_date)
     # Make sure all required weather variables are listed here
     # The order of variables in hourly or daily is important to assign them correctly below
     url = "https://api.open-meteo.com/v1/forecast"	
@@ -34,8 +40,8 @@ def consulta_api(latitude, longitude, ciudad):
         "hourly": ["temperature_2m", "precipitation_probability", "wind_speed_10m", "uv_index", "uv_index_clear_sky", "is_day", "sunshine_duration", "direct_radiation"],
         "daily": ["temperature_2m_max", "temperature_2m_min", "sunrise", "sunset", "daylight_duration", "sunshine_duration", "uv_index_max", "uv_index_clear_sky_max", "precipitation_probability_max"],
         "timezone": "auto",
-        "past_days": 31,
-        "forecast_days": 1
+        "start_date": start_date,
+        "end_date": end_date
     }
     responses = openmeteo.weather_api(url, params=params)
 
@@ -71,8 +77,11 @@ def consulta_api(latitude, longitude, ciudad):
     hourly_data["is_day"] = hourly_is_day
     hourly_data["sunshine_duration"] = hourly_sunshine_duration
     hourly_data["direct_radiation"] = hourly_direct_radiation
-
+    
+    # El dataframe se crea y se agrega la columna 'month' para poder agrupar los datos por mes
     hourly_dataframe = pd.DataFrame(data = hourly_data)
+    hourly_dataframe['month'] = hourly_dataframe['date'].dt.month
+ 
     #print(hourly_dataframe)
 
     # Process daily data. The order of variables needs to be the same as requested.
@@ -103,16 +112,33 @@ def consulta_api(latitude, longitude, ciudad):
     daily_data["uv_index_clear_sky_max"] = daily_uv_index_clear_sky_max
     daily_data["precipitation_probability_max"] = daily_precipitation_probability_max
 
+    # El dataframe se crea y se agrega la columna 'month' para poder agrupar los datos por mes
     daily_dataframe = pd.DataFrame(data = daily_data)
+    daily_dataframe['month'] = daily_dataframe['date'].dt.month
+
     #print(daily_dataframe)
+
+    hourly_data_by_month = hourly_dataframe.groupby('month')
+    daily_data_by_month = daily_dataframe.groupby('month')
  
     if hourly_dataframe.empty and daily_dataframe.empty:
         print("No se obtuvieron datos de la API.")
         return False
     else:
         print(f"Datos de {ciudad} obtenidos correctamente.\n")
-        hourly_dataframe.to_csv(os.path.join(folder, f'hourly_data_{current_date}.csv'), index=False)
-        daily_dataframe.to_csv(os.path.join(folder, f'daily_data_{current_date}.csv'), index=False)
+        for month, data in hourly_data_by_month:
+            # Crea una nueva carpeta para el mes
+            month_folder = os.path.join(folder, f'{current_date}_{month}_{mes[str(month)]}')
+            os.makedirs(month_folder, exist_ok=True)
+           
+            data.to_csv(os.path.join(month_folder, f'hourly_data_{current_date}_{month}.csv'), index=False)
+
+        for month, data in daily_data_by_month:
+            # Crea una nueva carpeta para el mes
+            month_folder = os.path.join(folder, f'{current_date}_{month}_{mes[str(month)]}')
+            os.makedirs(month_folder, exist_ok=True)
+            
+            data.to_csv(os.path.join(month_folder, f'daily_data_{current_date}_{month}.csv'), index=False)
         return True
 
 if __name__ == "__main__":
